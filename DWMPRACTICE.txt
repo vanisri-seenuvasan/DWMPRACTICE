@@ -1,0 +1,446 @@
+1.
+import pandas as pd
+import numpy as np
+
+class Node:
+    def __init__(self, attribute=None, value=None, decision=None):
+        self.attribute = attribute
+        self.value = value
+        self.decision = decision
+        self.children = {}
+
+def entropy(labels):
+    n = len(labels)
+    if n <= 1:
+        return 0
+    _, counts = np.unique(labels, return_counts=True)
+    probabilities = counts / n
+    return -np.sum(probabilities * np.log2(probabilities))
+
+def information_gain(data, attribute, target_attribute):
+    total_entropy = entropy(data[target_attribute])
+    values, counts = np.unique(data[attribute], return_counts=True)
+    weighted_entropy = np.sum([(counts[i] / np.sum(counts)) * entropy(data.where(data[attribute] == val).dropna()[target_attribute]) for i, val in enumerate(values)])
+    return total_entropy - weighted_entropy
+
+def build_tree(data, attributes, target_attribute):
+    if len(np.unique(data[target_attribute])) == 1:
+        return Node(decision=data[target_attribute].iloc[0])
+
+    if len(attributes) == 0:
+        return Node(decision=data[target_attribute].mode().iloc[0])
+
+    information_gains = [information_gain(data, attribute, target_attribute) for attribute in attributes]
+    best_attribute_index = np.argmax(information_gains)
+    best_attribute = attributes[best_attribute_index]
+
+    tree = Node(attribute=best_attribute)
+
+    for value in np.unique(data[best_attribute]):
+        sub_data = data.where(data[best_attribute] == value).dropna()
+        subtree = build_tree(sub_data, [attr for attr in attributes if attr != best_attribute], target_attribute)
+        tree.children[value] = subtree
+
+    return tree
+
+def predict(node, instance):
+    if node.decision is not None:
+        return node.decision
+    else:
+        return predict(node.children[instance[node.attribute]], instance)
+
+# Define the dataset
+data = {
+    'day': list(range(1, 15)),
+    'outlook': ['sunny', 'sunny', 'overcast', 'rain', 'rain', 'rain', 'overcast', 'sunny', 'sunny', 'rain', 'sunny', 'overcast', 'overcast', 'rain'],
+    'temperature': ['hot', 'hot', 'hot', 'mild', 'cool', 'cool', 'cool', 'mild', 'cool', 'mild', 'mild', 'mild', 'hot', 'mild'],
+    'humidity': ['high', 'high', 'high', 'high', 'normal', 'normal', 'normal', 'high', 'normal', 'normal', 'normal', 'high', 'normal', 'high'],
+    'wind': ['weak', 'strong', 'weak', 'weak', 'weak', 'strong', 'strong', 'weak', 'weak', 'weak', 'strong', 'strong', 'weak', 'strong'],
+    'playing': ['no', 'no', 'yes', 'yes', 'yes', 'no', 'yes', 'no', 'yes', 'yes', 'yes', 'yes', 'yes', 'no']
+}
+
+# Convert to DataFrame
+df = pd.DataFrame(data)
+
+# Define attributes and target attribute
+attributes = df.columns[1:-1]
+target_attribute = df.columns[-1]
+
+# Build the decision tree
+tree = build_tree(df, attributes, target_attribute)
+
+# Test the decision tree with a sample instance
+sample_instance = {'outlook': 'rain', 'temperature': 'mild', 'humidity': 'normal', 'wind': 'weak'}
+prediction = predict(tree, sample_instance)
+print("Sample Instance Decision:", prediction)
+
+
+
+
+2.
+import csv
+import numpy as np
+
+# Create CSV file
+data = [
+    ["Individual", "Variable 1", "Variable 2"],
+    [1, 1.0, 1.0],
+    [2, 1.5, 2.0],
+    [3, 3.0, 4.0],
+    [4, 5.0, 7.0],
+    [5, 3.5, 5.0],
+    [6, 4.5, 5.0],
+    [7, 3.5, 4.5]
+]
+
+with open('data.csv', 'w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerows(data)
+
+# K-means Clustering
+data = np.array([
+    [1.0, 1.0],
+    [1.5, 2.0],
+    [3.0, 4.0],
+    [5.0, 7.0],
+    [3.5, 5.0],
+    [4.5, 5.0],
+    [3.5, 4.5]
+])
+
+k = 2
+centroids = data[np.random.choice(data.shape[0], k, replace=False)]
+
+for _ in range(100):
+    clusters = [[] for _ in range(k)]
+    for point in data:
+        distances = [np.sqrt(np.sum((point - centroid) ** 2)) for centroid in centroids]
+        cluster_index = np.argmin(distances)
+        clusters[cluster_index].append(point)
+
+    new_centroids = []
+    for cluster in clusters:
+        new_centroids.append(np.mean(cluster, axis=0))
+    
+    new_centroids = np.array(new_centroids)
+
+    if np.all(centroids == new_centroids):
+        break
+    
+    centroids = new_centroids
+
+# Print the results
+for i, cluster in enumerate(clusters):
+    print(f"Cluster {i+1}:")
+    for point in cluster:
+        print(point)
+
+
+3.
+import numpy as np
+
+# Given data
+x = np.array([0, 1, 2, 3, 4])
+y = np.array([2, 3, 5, 4, 6])
+
+# Calculating the mean of x and y
+mean_x = np.sum(x) / len(x)
+mean_y = np.sum(y) / len(y)
+
+# Calculating the slope (a)
+numerator = np.sum((x - mean_x) * (y - mean_y))
+denominator = np.sum((x - mean_x) ** 2)
+a = numerator / denominator
+
+# Calculating the intercept (b)
+b = mean_y - a * mean_x
+
+print(f"The linear regression line is: y = {a}x + {b}")
+
+# Estimating the value of y when x = 10
+x_new = 10
+y_estimated = a * x_new + b
+print(f"The estimated value of y when x = 10 is: {y_estimated}")
+
+# Calculating the error
+y_predicted = a * x + b
+error = np.sum((y - y_predicted) ** 2)
+print(f"The error is: {error}")
+
+
+4.
+
+import numpy as np
+
+# Define the points
+points = np.array([[2, 10], [2, 5], [8, 4], [5, 8], [7, 5], [6, 4], [1, 2], [4, 9]])
+
+# Define the initial cluster centers
+initial_centers = np.array([[2, 10], [5, 8], [1, 2]])
+
+# Perform K-means clustering
+k = 3
+centers = initial_centers.copy()
+n_iter = 100
+for _ in range(n_iter):
+    clusters = [[] for _ in range(k)]
+    
+    # Assign each point to the nearest cluster center
+    for point in points:
+        distances = [np.linalg.norm(point - center) for center in centers]
+        cluster_idx = np.argmin(distances)
+        clusters[cluster_idx].append(point)
+    
+    # Update cluster centers
+    new_centers = [np.mean(cluster, axis=0) for cluster in clusters]
+    
+    # Check for convergence
+    if np.allclose(new_centers, centers):
+        break
+    centers = new_centers
+
+# Print the clusters
+for i, cluster in enumerate(clusters):
+    print(f"Cluster {i+1}: ")
+    for point in cluster:
+        print(point)
+
+
+5.
+data = [
+    [1, 21, 10000, 'Male', '31.05.1992', 'No'],
+    [2, 35, 100000, 'Male', '10-05-2002', 'No'],
+    [3, 26, 45000, 'Male', 'Aug 5, 2000', 'Yes'],
+    [4, 45, None, None, None, 'Yes'],
+    [5, 67, 10000, 'Female', '31.03.1986', 'Yes'],
+    [6, None, 10000, 'Female', '10/5/1987', 'No'],
+    [7, 32, None, 'Female', '31.05.1992', 'Yes'],
+    [8, 31, 10000, 'Male', '10-05-2002', 'No'],
+    [9, None, 10000, 'Female', 'Aug 5, 2000', 'Yes'],
+    [10, 42, 15000, 'Female', 'Sep 12’2000', 'Yes'],
+    [11, None, 25000, 'Female', '31.03.1986', 'Yes'],
+    [12, 32, 35000, 'Male', '10/5/1987', 'Yes'],
+    [13, 35, 150000, 'Female', 'Sep 12’2000', 'Yes'],
+    [14, 35, 35000, 'Male', '31.03.1986', 'No']
+]
+
+# Handle missing data and clean up formatting
+for row in data:
+    if row[2] is not None and isinstance(row[2], str):
+        row[2] = int(''.join(filter(str.isdigit, row[2])))  # Convert incorrect values in 'Income' to numerical format
+        
+    if row[1] is None or row[3] is None:
+        row[1] = -1  # Placeholder for missing 'Age'
+        row[3] = 'Unknown'  # Placeholder for missing 'Gender'
+    
+    if row[4] is not None and '/' in row[4]:
+        row[4] = row[4].replace('/', '.')  # Convert date formats to a standard format
+        
+    row[5] = 'Yes' if row[5].lower() == 'yes' else 'No'  # Standardize 'Buys' column values
+
+# Statistical measures
+incomes = [row[2] for row in data if row[2] is not None]
+mean_income = sum(incomes) / len(incomes)
+median_age = sorted([row[1] for row in data if row[1] != -1])[len(incomes) // 2]
+gender_counts = {}
+for row in data:
+    gender = row[3]
+    if gender in gender_counts:
+        gender_counts[gender] += 1
+    else:
+        gender_counts[gender] = 1
+mode_gender = max(gender_counts, key=gender_counts.get)
+buys_count = {'Yes': 0, 'No': 0}
+for row in data:
+    buys_count[row[5]] += 1
+std_income = sum([(income - mean_income) ** 2 for income in incomes]) / len(incomes) ** 0.5
+
+print(f"Mean Income: {mean_income}")
+print(f"Median Age: {median_age}")
+print(f"Mode Gender: {mode_gender}")
+print(f"Number of people who bought and didn't buy: \n{buys_count}")
+print(f"Standard Deviation of Income: {std_income}")
+
+
+6.
+
+import matplotlib.pyplot as plt
+
+# Data points
+data_points = [
+    (2, 2), # A
+    (3, 2), # B
+    (1, 1), # C
+    (3, 1), # D
+    (1.5, 0.5) # E
+]
+
+# Initial centers
+centers = [
+    (2, 2), # Center 1 (A)
+    (1, 1)  # Center 2 (C)
+]
+
+# Function to calculate Euclidean distance
+def euclidean_distance(p1, p2):
+    return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
+
+# K-Means algorithm
+def kmeans(data_points, centers, max_iterations=10):
+    for _ in range(max_iterations):
+        # Step 1: Assign points to the nearest center
+        clusters = {0: [], 1: []}
+        for point in data_points:
+            distances = [euclidean_distance(point, center) for center in centers]
+            closest_center = distances.index(min(distances))
+            clusters[closest_center].append(point)
+        
+        # Step 2: Update centers
+        new_centers = []
+        for i in range(len(centers)):
+            if len(clusters[i]) > 0:
+                new_center = (
+                    sum([p[0] for p in clusters[i]]) / len(clusters[i]),
+                    sum([p[1] for p in clusters[i]]) / len(clusters[i])
+                )
+                new_centers.append(new_center)
+            else:
+                new_centers.append(centers[i])
+        
+        # Check for convergence
+        if new_centers == centers:
+            break
+        centers = new_centers
+    
+    return clusters, centers
+
+# Perform K-Means clustering
+clusters, final_centers = kmeans(data_points, centers)
+
+# Output the result
+print("Final centers:", final_centers)
+print("Cluster assignments:", clusters)
+
+# Plotting the results
+colors = ['r', 'b']
+for cluster_idx, cluster in clusters.items():
+    cluster_points = list(zip(*cluster))
+    plt.scatter(cluster_points[0], cluster_points[1], c=colors[cluster_idx], label=f'Cluster {cluster_idx + 1}')
+
+# Plot initial and final centers
+initial_centers_x, initial_centers_y = zip(*centers)
+final_centers_x, final_centers_y = zip(*final_centers)
+plt.scatter(initial_centers_x, initial_centers_y, c='g', marker='x', s=100, label='Initial Centers')
+plt.scatter(final_centers_x, final_centers_y, c='k', marker='x', s=100, label='Final Centers')
+
+# Labels and legend
+plt.xlabel('X-axis')
+plt.ylabel('Y-axis')
+plt.legend()
+plt.title('K-Means Clustering')
+plt.show()
+
+
+7.
+
+import pandas as pd
+import itertools
+
+# Data creation
+data = {'TransactionID': ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'],
+        'Items': [['HotDogs', 'Buns', 'Ketchup'],
+                  ['HotDogs', 'Buns'],
+                  ['HotDogs', 'Coke', 'Chips'],
+                  ['Chips', 'Coke'],
+                  ['Chips', 'Ketchup'],
+                  ['HotDogs', 'Coke', 'Chips']]}
+
+df = pd.DataFrame(data)
+
+# Creating the basket (one-hot encoded DataFrame)
+basket = pd.DataFrame(df['Items'].tolist(), index=df['TransactionID']).stack().reset_index(level=1, drop=True).reset_index()
+basket.columns = ['TransactionID', 'Items']
+basket = pd.crosstab(basket['TransactionID'], basket['Items'])
+
+# Encoding function
+def encode_units(x):
+    return 1 if x >= 1 else 0
+
+basket_sets = basket.applymap(encode_units)
+
+# Function to generate frequent itemsets
+def apriori_manual(df, min_support=0.3334):
+    itemset_support = {}
+    num_transactions = len(df)
+    items = df.columns
+
+    def get_support(itemset):
+        mask = df[list(itemset)].all(axis=1)
+        return mask.sum() / num_transactions
+
+    # Generate frequent 1-itemsets
+    for item in items:
+        support = get_support([item])
+        if support >= min_support:
+            itemset_support[frozenset([item])] = support
+
+    current_itemsets = list(itemset_support.keys())
+    k = 2
+
+    while current_itemsets:
+        new_itemsets = list(itertools.combinations(set(itertools.chain.from_iterable(current_itemsets)), k))
+        new_itemset_support = {}
+
+        for itemset in new_itemsets:
+            support = get_support(itemset)
+            if support >= min_support:
+                new_itemset_support[frozenset(itemset)] = support
+
+        itemset_support.update(new_itemset_support)
+        current_itemsets = new_itemset_support.keys()
+        k += 1
+
+    frequent_itemsets = pd.DataFrame(
+        [(list(itemset), support) for itemset, support in itemset_support.items()],
+        columns=['itemsets', 'support']
+    )
+
+    return frequent_itemsets
+
+frequent_itemsets = apriori_manual(basket_sets)
+
+# Function to generate association rules
+def generate_association_rules(frequent_itemsets, min_confidence=0.6):
+    rules = []
+    itemsets = frequent_itemsets['itemsets'].tolist()
+    supports = dict(zip(map(frozenset, frequent_itemsets['itemsets']), frequent_itemsets['support']))
+
+    for itemset in itemsets:
+        if len(itemset) > 1:
+            for subset in itertools.chain(*[itertools.combinations(itemset, r) for r in range(1, len(itemset))]):
+                antecedent = frozenset(subset)
+                consequent = frozenset(itemset) - antecedent
+                if supports[frozenset(itemset)] / supports[antecedent] >= min_confidence:
+                    rules.append({
+                        'antecedent': list(antecedent),
+                        'consequent': list(consequent),
+                        'antecedent support': supports[antecedent],
+                        'consequent support': supports[consequent],
+                        'support': supports[frozenset(itemset)],
+                        'confidence': supports[frozenset(itemset)] / supports[antecedent],
+                        'lift': supports[frozenset(itemset)] / (supports[antecedent] * supports[consequent])
+                    })
+
+    return pd.DataFrame(rules)
+
+rules = generate_association_rules(frequent_itemsets)
+
+print("Frequent Itemsets:")
+print(frequent_itemsets)
+print("\nAssociation Rules:")
+print(rules.sort_values(by='confidence', ascending=False))
+
+
+--------------------------------------------------------ALL THE BEST------------------------------------------------------------
+
+
